@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <Product Id="*" Name="EndpointAgentInstaller" Language="1033" Version="1.0.0.0" Manufacturer="DsInfoShield" UpgradeCode="f547cdc7-fb7c-4a55-839c-5afa3a8a402d">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" InstallPrivileges="elevated"  />
+
+    <Media Id="1" Cabinet="media1.cab" EmbedCab="yes" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="EndpointAgentIn" />
+      </Directory>
+    </Directory>
+
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <!-- orbit.exe file to be installed -->
+      <Component Id="InstallOrbitExecutable" Guid="f764a494-a429-47ff-a5bd-4b225ad52d15">
+       
+        <File Id="OrbitExecutable" Source="D:\go-test\updatedAgentService\orbit.exe" KeyPath="yes" />
+
+        <!-- Define the service -->
+        <ServiceInstall
+          Id="EndPointAgent"
+          Type="ownProcess"
+          Name="EndPointAgent"
+          DisplayName="Agent Service"
+          Description="Service for running the Orbit Agent"
+          Start="auto"
+          Account="LocalSystem"
+          ErrorControl="normal"
+          Interactive="yes"
+          Arguments="--fleet-desktop --enable-scripts --dev-mode --insecure --disable-updates --root-dir /tmp/orbit --fleet-url https://eaa5-122-165-121-126.ngrok-free.app --enroll-secret SFpov2Zbmz36W1v+ywVV3qzGqnkAVM7E -- --verbose"
+        />
+
+        <!-- Configure service failure actions using WixUtilExtension -->
+        <util:ServiceConfig  
+            ServiceName="EndPointAgent"
+            FirstFailureActionType="restart" 
+            SecondFailureActionType="restart" 
+            ThirdFailureActionType="restart" 
+            RestartServiceDelayInSeconds="2"
+            ResetPeriodInDays="1"/>
+
+            
+
+        <!-- Start the service after installation -->
+        <ServiceControl
+          Id="StartEndPointAgent"
+          Start="install"
+          Stop="both"
+          Remove="uninstall"
+          Name="EndPointAgent"
+          Wait="yes"
+        />
+      </Component>
+
+      <!-- Registry entry to increase the service timeout -->
+      <Component Id="SetServicesPipeTimeout" Guid="e8d875b7-25c4-4d6e-b71b-9246dba3703e">
+        <RegistryValue Root="HKLM" Key="SYSTEM\CurrentControlSet\Control" Name="ServicesPipeTimeout" Type="integer" Value="180000" KeyPath="yes" />
+        <RegistryValue 
+                    Root="HKLM" 
+                    Key="SYSTEM\CurrentControlSet\Services\EndPointAgent" 
+                    Name="DelayedAutostart" 
+                    Type="integer" 
+                    Value="1" 
+                    KeyPath="no" 
+                    />
+      </Component>
+
+    </ComponentGroup>
+
+    <Feature Id="ProductFeature" Title="EndpointAgentInstaller" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+    </Feature>
+  </Product>
+</Wix>
